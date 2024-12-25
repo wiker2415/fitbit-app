@@ -5,7 +5,7 @@ import json
 import os
 from ..controllers.auth_controller import OAuth2Controller
 from ..controllers.view_controller import ViewController
-from ..models.client_state import ClientState
+from ..models.credential import Credential
 
 class AuthView:
     def __init__(self, root):
@@ -13,7 +13,7 @@ class AuthView:
         self.root.title("認証フォーム")
 
         # 前回の認証情報を保存するJSONファイルの保存パス
-        self.credentials_file = "credentials.json"
+        self.credentials_file = "credential.json"
 
         # ウィンドウの設定
         self._set_window_geometry()
@@ -25,7 +25,7 @@ class AuthView:
         self._create_widgets()
 
         # JSONファイルを読み込み
-        self._load_credentials()
+        self._load_credential_json()
 
     def _set_window_geometry(self):
         # ウィンドウの大きさを指定
@@ -76,18 +76,19 @@ class AuthView:
             messagebox.showerror("エラー", "Client ID と Client Secret を入力してください。")
             return
         
-        controller = OAuth2Controller(client_id, client_secret)
-        authorize_message = controller.browser_authorize()
+        # 資格情報をCredentialクラスに保存
+        Credential.client_id = client_id
+        Credential.client_secret = client_secret
+
+        auth_controller = OAuth2Controller()
+        authorize_message = auth_controller.browser_authorize()
         
         if authorize_message == '認証成功':
             # 保存オプションがオンならJSONファイルに保存する
             if self.save_credentials_var.get():
-                self._save_credentials(client_id, client_secret)
+                self._save_credential_json(client_id, client_secret)
             else:
-                self._delete_credentials()
-
-            ClientState.client_id = client_id
-            ClientState.client_secret = client_secret
+                self._delete_credential_json()
 
             ViewController.switch_to_main_view(self.root)
         else:
@@ -105,7 +106,7 @@ class AuthView:
             return True
         return False
     
-    def _load_credentials(self):
+    def _load_credential_json(self):
         if os.path.exists(self.credentials_file):
             with open(self.credentials_file, 'r') as file:
                 try:
@@ -116,7 +117,7 @@ class AuthView:
                 except json.JSONDecodeError:
                     pass
 
-    def _save_credentials(self, client_id, client_secret):
+    def _save_credential_json(self, client_id, client_secret):
         data = {
             "client_id": client_id,
             "client_secret": client_secret
@@ -124,6 +125,6 @@ class AuthView:
         with open(self.credentials_file, 'w') as file:
             json.dump(data, file)
 
-    def _delete_credentials(self):
+    def _delete_credential_json(self):
         if os.path.exists(self.credentials_file):
             os.remove(self.credentials_file)

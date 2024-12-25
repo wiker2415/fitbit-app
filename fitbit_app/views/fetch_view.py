@@ -2,7 +2,9 @@ import tkinter as tk
 from tkinter import messagebox
 from tkcalendar import DateEntry
 from ..controllers.view_controller import ViewController
-from ..models.client_state import ClientState
+from ..controllers.fetch_controller import FetchController
+
+from pprint import pprint
 
 class FetchView:
     def __init__(self, root):
@@ -49,11 +51,10 @@ class FetchView:
         start_date = self.start_date_entry.get()
         end_date = self.end_date_entry.get()
 
-        client_id = ClientState.client_id
-        client_secret = ClientState.client_secret
-
-        access_token = ClientState.access_token
-        refresh_token = ClientState.refresh_token
-
-        messagebox.showinfo("入力値", f"入力された値: {access_token}, {refresh_token}")
+        fetch_controller = FetchController()
+        try:
+            fetch_controller.fetch_steps_and_sleep_in_range(start_date, end_date)
+            messagebox.showinfo("完了", "データの取得が完了しました。")
+        except Exception as e:
+            messagebox.showerror("エラー", f"データの取得中にエラーが発生しました。\n{e}")
 

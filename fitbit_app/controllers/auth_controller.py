@@ -1,11 +1,11 @@
 import requests
 import webbrowser
 import threading
-from fitbit.api import Fitbit
+from fitbit import Fitbit
 from urllib.parse import urlparse
 import cherrypy
 from oauthlib.oauth2.rfc6749.errors import InvalidClientError
-from ..models.client_state import ClientState
+from ..models.credential import Credential
 
 # 認証可否のメッセージ変数をグローバルに定義
 authorize_message = ''
@@ -21,12 +21,15 @@ class OAuth2Controller:
         <h3>ウィンドウを閉じてください。</h3>
     '''
 
-    def __init__(self, client_id, client_secret, redirect_uri='http://127.0.0.1:8080/'):
-        self.client_id = client_id
-        self.client_secret = client_secret
+    def __init__(self, redirect_uri='http://127.0.0.1:8080/'):
         self.redirect_uri = redirect_uri
-        self.fitbit = Fitbit(client_id, client_secret, redirect_uri=redirect_uri, timeout=10)
-
+        self.fitbit = Fitbit(
+                Credential.client_id,
+                Credential.client_secret,
+                redirect_uri=self.redirect_uri,
+                timeout=10
+            )
+    
     def browser_authorize(self):
         """認証URLをブラウザで開き、レスポンスを受け取るためにCherryPyサーバーを起動する"""
         global authorize_message
@@ -64,9 +67,9 @@ class OAuth2Controller:
                 refresh_token = self.fitbit.client.session.token['refresh_token']
                 expires_at = self.fitbit.client.session.token['expires_at']
 
-                ClientState.access_token = access_token
-                ClientState.refresh_token = refresh_token
-                ClientState.expires_at = expires_at
+                Credential.access_token = access_token
+                Credential.refresh_token = refresh_token
+                Credential.expires_at = expires_at
 
                 self._shutdown_cherrypy()
                 authorize_message = '認証成功'
