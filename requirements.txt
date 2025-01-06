@@ -1,6 +1,12 @@
-# 認証部分に必要
+# Fitbit APIの認証に必要
 fitbit==0.3.1
 cherrypy==18.10.0
 
 # tkinterのカレンダー機能
 tkcalendar==1.6.1
+
+# グラフ化するときに必要
+pandas==2.2.3
+matplotlib==3.10.0
+seaborn==0.13.2
+jpholiday==0.1.10 # 祝日の判定

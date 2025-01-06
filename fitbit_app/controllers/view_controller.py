@@ -17,11 +17,11 @@ class ViewController:
         new_root.mainloop()
 
     @staticmethod
-    def switch_to_output_view(root):
-        from ..views.output_view import OutputView
+    def switch_to_output_month_view(root):
+        from ..views.output_month_view import OutputMonthView
         root.destroy()
         new_root = tk.Tk()
-        OutputView(new_root)
+        OutputMonthView(new_root)
         new_root.mainloop()
 
     @staticmethod

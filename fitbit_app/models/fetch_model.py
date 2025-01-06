@@ -28,26 +28,23 @@ class FetchModel:
         try:
             self.conn = sqlite3.connect(self.db_name)
             self.cursor = self.conn.cursor()
-            self.create_tables()
+            self._create_tables()
         except Error as e:
             raise Exception(f"データベースに接続できませんでした: {e}")
 
-    def close_resources(self):
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
-
-    def __del__(self):
-        self.close_resources()
-
-    def create_tables(self):
+    def _create_tables(self):
         try:
             self.cursor.execute(self.CREATE_STEP_TABLE)
             self.cursor.execute(self.CREATE_SLEEP_TABLE)
             self.conn.commit()
         except Error as e:
             raise Exception(f"テーブル作成に失敗しました: {e}")
+        
+    def close(self):
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
 
     def insert_step_data(self, date, step_count):
         try:

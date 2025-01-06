@@ -24,7 +24,7 @@ class MainView:
         self.fetch_button = tk.Button(self.root, text="データを取得する", command=lambda: ViewController.switch_to_fetch_view(self.root))
         self.fetch_button.pack(pady=10)
 
-        self.output_button = tk.Button(self.root, text="データを出力する", command=lambda: ViewController.switch_to_output_view(self.root))
+        self.output_button = tk.Button(self.root, text="データを出力する", command=lambda: ViewController.switch_to_output_month_view(self.root))
         self.output_button.pack(pady=10)
 
         self.close_button = tk.Button(self.root, text="閉じる", command=lambda: ViewController.close_view(self.root))

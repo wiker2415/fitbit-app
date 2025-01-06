@@ -11,9 +11,10 @@ class FetchController:
                 Credential.access_token,
                 Credential.refresh_token
             )
-        self.model = FetchModel()
 
     def fetch_steps_and_sleep_in_range(self, start_date, end_date):
+        self.model = FetchModel()
+
         start_date = datetime.strptime(start_date, "%Y/%m/%d").date()
         end_date = datetime.strptime(end_date, "%Y/%m/%d").date()
 
@@ -23,9 +24,14 @@ class FetchController:
                 self._fetch_step_data(current_date)
                 self._fetch_sleep_data(current_date)
             except Exception as e:
-                raise Exception(f"{current_date} のデータ取得に失敗しました。: {e}")
+                if 'Too Many Requests' in str(e):
+                    raise Exception(f"{current_date} のデータ取得に失敗しました。: {e}\nアクセスが多すぎるので、1時間後に再度実行してください。")
+                else:
+                    raise Exception(f"{current_date} のデータ取得に失敗しました。: {e}")
 
             current_date += timedelta(days=1)
+        
+        self.model.close()
         
     def _fetch_step_data(self, date):
         step_data = self.fitbit.intraday_time_series(

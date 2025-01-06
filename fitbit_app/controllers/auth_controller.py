@@ -36,8 +36,12 @@ class OAuth2Controller:
 
         url, _ = self.fitbit.client.authorize_token_url()
         # 認証URLが正しいか確認(Client情報が間違っていると500エラー)
-        if self._check_url_connection(url) != 200:
-            authorize_message = 'エラーです。Client情報を確認してください。'
+        try:
+            if self._check_url_connection(url) != 200:
+                authorize_message = 'エラーです。Client情報を確認してください。'
+                return authorize_message
+        except Exception as e:
+            authorize_message = 'サーバーへの接続でエラーが起こりました。'
             return authorize_message
 
         threading.Timer(1, webbrowser.open, args=(url,)).start()

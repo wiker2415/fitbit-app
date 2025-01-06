@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from ..controllers.view_controller import ViewController
+from ..controllers.output_month_controller import OutputMonthController
 
-class OutputView:
+class OutputMonthView:
     def __init__(self, root):
         self.root = root
         self.root.title("データ出力画面")
@@ -50,7 +51,12 @@ class OutputView:
         self.close_button.pack(pady=10)
 
     def output_data(self):
-        year = self.year_combobox.get()
-        month = self.month_combobox.get()
+        year = int(self.year_combobox.get())
+        month = int(self.month_combobox.get())
 
-        messagebox.showinfo("入力値", f"入力された値: {year}/{month}")
+        try:
+            output_month_controller = OutputMonthController(year, month)
+            output_month_controller.plot_and_save_graph()
+
+        except Exception as e:
+            messagebox.showerror("エラー", f"グラフの描画中にエラーが発生しました。\n{e}")
