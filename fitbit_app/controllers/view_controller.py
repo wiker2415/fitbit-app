@@ -4,33 +4,33 @@ class ViewController:
     @staticmethod
     def start_auth_view():
         from ..views.auth_view import AuthView
-        new_root = tk.Tk()
-        AuthView(new_root)
-        new_root.mainloop()
+        root = tk.Tk()
+        auth_view = AuthView(root)
+        auth_view.mainloop()
 
     @staticmethod
     def switch_to_main_view(root):
         from ..views.main_view import MainView
         root.destroy()
         new_root = tk.Tk()
-        MainView(new_root)
-        new_root.mainloop()
+        main_view = MainView(new_root)
+        main_view.mainloop()
 
     @staticmethod
     def switch_to_output_month_view(root):
         from ..views.output_month_view import OutputMonthView
         root.destroy()
         new_root = tk.Tk()
-        OutputMonthView(new_root)
-        new_root.mainloop()
+        output_month_view = OutputMonthView(new_root)
+        output_month_view.mainloop()
 
     @staticmethod
     def switch_to_fetch_view(root):
         from ..views.fetch_view import FetchView
         root.destroy()
         new_root = tk.Tk()
-        FetchView(new_root)
-        new_root.mainloop()
+        fetch_view = FetchView(new_root)
+        fetch_view.mainloop()
 
     @staticmethod
     def close_view(root):

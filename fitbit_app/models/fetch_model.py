@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from sqlite3 import Error
 from ..models.credential import Credential
@@ -19,7 +20,13 @@ class FetchModel:
     '''
     
     def __init__(self):
-        self.db_name = f"{Credential.client_id}.db"
+        # ルートディレクトリに database フォルダを作成
+        self.database_dir = f"./database"
+        os.makedirs(self.database_dir, exist_ok=True)
+
+        # データベースファイルのパスを指定
+        self.db_name = os.path.join(self.database_dir, f"{Credential.client_id}.db")
+
         self.conn = None
         self.cursor = None
         self.connect()

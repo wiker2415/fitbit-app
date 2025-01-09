@@ -7,7 +7,7 @@ class OutputMonthModel:
         self.sleep_data = None
         self.step_data = None
 
-        self.db_name = f"{Credential.client_id}.db"
+        self.db_name = fr"./database/{Credential.client_id}.db"
         self.conn = None
         self.cursor = None
         self.connect()
