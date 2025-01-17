@@ -56,10 +56,10 @@ class OutputMonthView(tk.Frame):
     def output_data(self):
         year = int(self.year_combobox.get())
         month = int(self.month_combobox.get())
+        
+        output_month_controller = OutputMonthController(self.master, year, month, self.show_error)
+        output_month_controller.start_plot()
 
-        try:
-            output_month_controller = OutputMonthController(year, month)
-            output_month_controller.plot_and_save_graph()
-
-        except Exception as e:
-            messagebox.showerror("エラー", f"グラフの描画中にエラーが発生しました。\n{e}")
+    def show_error(self, error_message: str):
+        """エラー時のコールバック"""
+        messagebox.showerror("エラー", f"エラー: {error_message}")

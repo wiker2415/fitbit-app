@@ -74,7 +74,7 @@ class OutputMonthModel:
         """
         try:
             self.cursor.execute('''
-                SELECT step_count FROM step_data
+                SELECT date, step_count FROM step_data
                 WHERE date BETWEEN ? AND ?
                 ORDER BY date
             ''', (first_day_of_month, last_day_of_month))

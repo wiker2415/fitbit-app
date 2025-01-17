@@ -1,7 +1,7 @@
+from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
 from tkcalendar import DateEntry
-from datetime import datetime
 from ..controllers.view_controller import ViewController
 from ..controllers.fetch_controller import FetchController
 
@@ -54,15 +54,22 @@ class FetchView(tk.Frame):
 
         today = datetime.today().date()
 
+        if end_date < start_date:
+            messagebox.showerror("エラー", f"終了日が開始日より早いです。正しく入力してください。")
+            raise Exception("日付入力エラー")
+
         if end_date > today:
             end_date = today
             messagebox.showinfo("情報", "未来の日付が指定されているので、今日の日付にします。")
 
-        fetch_controller = FetchController(self.master)
+        fetch_controller = FetchController(self.master, start_date, end_date, self.show_error, self.show_success)
+        fetch_controller.start_fetch()
 
-        try:
-            fetch_controller.fetch_steps_and_sleep_in_range(start_date, end_date)
-            messagebox.showinfo("完了", "データの取得が完了しました。")
-        except Exception as e:
-            messagebox.showerror("エラー", f"データの取得中にエラーが発生しました。\n{e}")
+    def show_error(self, error_message: str):
+        """エラー時のコールバック"""
+        messagebox.showerror("エラー", f"エラー: {error_message}")
+        raise Exception(f"{error_message}")
 
+    def show_success(self):
+        """成功時のコールバック"""
+        messagebox.showinfo("完了", "データの取得が完了しました。")

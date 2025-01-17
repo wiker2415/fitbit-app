@@ -17,18 +17,26 @@ class OutputMonthService:
             last_day_of_month (str): 月末の日付
         """
         # データベースから睡眠と歩数のデータを取得
-        output_month_model = OutputMonthModel()
-        output_month_model.retrieve_month_data(first_day_of_month, last_day_of_month)
-        self.sleep_data = output_month_model.sleep_data
-        self.step_data = output_month_model.step_data
-        output_month_model.close()
+        try:
+            output_month_model = OutputMonthModel()
+            output_month_model.retrieve_month_data(first_day_of_month, last_day_of_month)
+            self.sleep_data = output_month_model.sleep_data
+            self.step_data = output_month_model.step_data
+        except Exception as e:
+            raise Exception(f"{e}")
+        finally:
+            output_month_model.close()
+
+        # データが無ければエラーにする
+        if self.sleep_data == [] and self.step_data == []:
+            raise Exception(f"データがありません。")
 
         # 睡眠データを変換(生データ→データフレーム→24時間スケール)
         self.sleep_data = self._convert_sleep_list_to_dataframe(self.sleep_data)
         self.sleep_data = self._convert_sleep_data_df_to_24h_scale(self.sleep_data)
 
         # 歩数データを変換(生データ→リスト)
-        self.step_data = self._convert_step_data_to_list(self.step_data)
+        self.step_data = self._convert_step_data_to_df(self.step_data)
 
     def _convert_sleep_list_to_dataframe(self, sleep_data: list) -> list:
         """睡眠データをデータフレームに変換
@@ -169,5 +177,15 @@ class OutputMonthService:
 
         return sleep_24h_df
 
-    def _convert_step_data_to_list(self, step_data: list) -> list:
-        return [x[0] for x in step_data]
+    def _convert_step_data_to_df(self, step_data: list) -> pd.DataFrame:
+        """歩数のデータをデータフレームに変換
+
+        Args:
+            step_data (list): 歩数データ
+
+        Returns:
+            pd.DataFrame: 歩数データをデータフレームにしたもの
+        """
+        step_df = pd.DataFrame(step_data, columns=['Date', 'Steps'])
+        step_df['Date'] = pd.to_datetime(step_df['Date'])
+        return step_df

@@ -3,36 +3,79 @@ import subprocess
 import calendar
 import datetime as dt
 import jpholiday
+import logging
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.lines import Line2D
 import seaborn as sns
+import threading
+from ..views.progress_view import ProgressView
 from ..models.output_month_service import OutputMonthService
 from ..models.credential import Credential
+
+os.makedirs('error_log', exist_ok=True)
+
+logging.basicConfig(
+    filename='error_log/output_error.log',
+    level=logging.ERROR,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
 
 # フォントを日本語対応のものに設定
 rcParams['font.family'] = 'MS Gothic'
 sns.set_theme(style='darkgrid', context='notebook', font='MS Gothic')
 
 class OutputMonthController:
-    def __init__(self, year: int, month: int):
+    def __init__(self, master, year: int, month: int, error_callback):
+        self.master = master
         self.year = year
         self.month = month
+        self.error_callback = error_callback
+
         # 月初と月末の日付を計算
         self.first_day_of_month = f"{self.year}-{self.month:02}-01"
         self.last_day = calendar.monthrange(self.year, self.month)[1]
         self.last_day_of_month = f"{self.year}-{self.month:02}-{self.last_day:02}"
 
         # 睡眠データと歩数データをセット
-        output_month_service = OutputMonthService()
-        output_month_service.retrieve_month_data(self.first_day_of_month, self.last_day_of_month)
-        self.sleep_data = output_month_service.sleep_data
-        self.step_data = output_month_service.step_data
+        try:
+            output_month_service = OutputMonthService()
+            output_month_service.retrieve_month_data(self.first_day_of_month, self.last_day_of_month)
+            self.sleep_data = output_month_service.sleep_data
+            self.step_data = output_month_service.step_data
+        except Exception as e:
+            # データベースが無い時
+            if "no such table" in str(e):
+                error_message = "データベースがありません。先にデータを取得してください。"
+                self.error_callback(error_message)
+            else:
+                logging.error("An error occurred", exc_info=True)
+                self.error_callback(str(e))
+            raise Exception(f"{e}")
 
         # 保存フォルダ名をClient IDにする
         self.save_folder_name = Credential.client_id
 
-    def plot_and_save_graph(self):
+    def start_plot(self):
+        self.progress_view = ProgressView(self.master, "グラフ描画中です...")
+
+        def run_task():
+            try:
+                self._plot_and_save_graph()
+            except Exception as e:
+                self.error_callback(str(e))
+                raise Exception(f"{e}")
+            finally:
+                self.progress_view.close()
+
+        # 新しいスレッドを使ってタスクを実行
+        thread = threading.Thread(target=run_task)
+        thread.start()
+        
+    def _plot_and_save_graph(self):
         """グラフを描画する
         """
         # A4用紙横向きの寸法(インチ単位)
@@ -58,6 +101,7 @@ class OutputMonthController:
 
             # PDFが存在するか確認
             if not os.path.exists(pdf_path):
+                logging.error("An error occurred", exc_info=True)
                 raise Exception(f'PDFファイルが存在しません: {pdf_path}')
 
             # PDFを開く
@@ -66,6 +110,7 @@ class OutputMonthController:
         except PermissionError:
             raise Exception('ファイルが開かれているため、保存できません。\nPDFを閉じて再試行してください。')
         except Exception as e:
+            logging.error("An error occurred", exc_info=True)
             raise Exception(f'ファイルの保存でエラーが発生しました。: {e}')
         finally:
             plt.clf()
@@ -197,15 +242,17 @@ class OutputMonthController:
         else:
             return 'black' # 平日は黒
         
-    def _plot_step_data(self, fig, step_data):
+    def _plot_step_data(self, fig, step_data_df):
         """歩数データをグラフに表示
         """
         ax = fig.add_subplot(1, 3, 3)
-        days_int = range(1, len(step_data) + 1)
-        ax.barh(days_int, step_data, height=1.0, color='C0', label='歩数')
+        
+        days = step_data_df['Date'].dt.day
+        steps = step_data_df['Steps']
+        ax.barh(days, steps, height=1.0, color='C0', label='歩数')
 
         # x軸の最大値を10000歩orそれ以上は自動に設定
-        if len(step_data) == 0 or max(step_data) < 10000:
+        if len(steps) == 0 or max(steps) < 10000:
             plt.xlim([0, 10000])
             
         self._setting_yaxis(ax)

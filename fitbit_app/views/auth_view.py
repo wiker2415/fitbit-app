@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
 import re
-import json
-import os
 from ..controllers.auth_controller import OAuth2Controller
 from ..controllers.view_controller import ViewController
 from ..models.credential import Credential
+from ..models.auth_model import AuthModel
 
 class AuthView(tk.Frame):
     def __init__(self, master):
@@ -15,8 +14,7 @@ class AuthView(tk.Frame):
         self.master = master
         self.master.title("認証フォーム")
 
-        # 前回の認証情報を保存するJSONファイルの保存パス
-        self.credentials_file = "credentials.json"
+        self.auth_model = AuthModel()
 
         # ウィンドウの設定
         self._set_window_geometry()
@@ -28,7 +26,7 @@ class AuthView(tk.Frame):
         self._create_widgets()
 
         # JSONファイルを読み込み
-        self._load_credential_json()
+        self._load_credentials()
 
     def _set_window_geometry(self):
         # ウィンドウの大きさを指定
@@ -89,9 +87,9 @@ class AuthView(tk.Frame):
         if authorize_message == '認証成功':
             # 保存オプションがオンならJSONファイルに保存する
             if self.save_credentials_var.get():
-                self._save_credential_json(client_id, client_secret)
+                self.auth_model.save_credentials(client_id, client_secret)
             else:
-                self._delete_credential_json()
+                self.auth_model.delete_credentials()
 
             ViewController.switch_to_main_view(self.master)
         else:
@@ -109,25 +107,12 @@ class AuthView(tk.Frame):
             return True
         return False
     
-    def _load_credential_json(self):
-        if os.path.exists(self.credentials_file):
-            with open(self.credentials_file, 'r') as file:
-                try:
-                    data = json.load(file)
-                    self.client_id_entry.insert(0, data.get("client_id", ""))
-                    self.client_secret_entry.insert(0, data.get("client_secret", ""))
-                    self.save_credentials_var.set(True)
-                except json.JSONDecodeError:
-                    pass
+    def _load_credentials(self):
+        """JSONファイルを読み込み、フォームに入力しておく
+        """
+        credencials = self.auth_model.load_credentials()
 
-    def _save_credential_json(self, client_id, client_secret):
-        data = {
-            "client_id": client_id,
-            "client_secret": client_secret
-        }
-        with open(self.credentials_file, 'w') as file:
-            json.dump(data, file)
+        self.client_id_entry.insert(0,credencials.get("client_id", ""))
+        self.client_secret_entry.insert(0, credencials.get("client_secret", ""))
 
-    def _delete_credential_json(self):
-        if os.path.exists(self.credentials_file):
-            os.remove(self.credentials_file)
+        self.save_credentials_var.set(bool(credencials))
