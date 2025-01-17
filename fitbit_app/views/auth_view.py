@@ -70,30 +70,34 @@ class AuthView(tk.Frame):
         self.auth_button.pack(pady=5)
 
     def authenticate(self):
-        client_id = self.client_id_entry.get()
-        client_secret = self.client_secret_entry.get()
+        self.client_id = self.client_id_entry.get()
+        self.client_secret = self.client_secret_entry.get()
 
-        if not client_id or not client_secret:
+        if not self.client_id or not self.client_secret:
             messagebox.showerror("エラー", "Client ID と Client Secret を入力してください。")
             return
         
         # 資格情報をCredentialクラスに保存
-        Credential.client_id = client_id
-        Credential.client_secret = client_secret
+        Credential.client_id = self.client_id
+        Credential.client_secret = self.client_secret
 
-        auth_controller = OAuth2Controller()
-        authorize_message = auth_controller.browser_authorize()
-        
-        if authorize_message == '認証成功':
-            # 保存オプションがオンならJSONファイルに保存する
-            if self.save_credentials_var.get():
-                self.auth_model.save_credentials(client_id, client_secret)
-            else:
-                self.auth_model.delete_credentials()
+        auth_controller = OAuth2Controller(self.error, self.success)
+        auth_controller.browser_authorize()
 
-            ViewController.switch_to_main_view(self.master)
+    def error(self, error_message: str):
+        """エラー時のコールバック"""
+        messagebox.showerror("エラー", f"エラー: {error_message}")
+        raise Exception(f"{error_message}")
+    
+    def success(self):
+        """認証成功時のコールバック"""
+        # 保存オプションがオンならJSONファイルに保存する
+        if self.save_credentials_var.get():
+            self.auth_model.save_credentials(self.client_id, self.client_secret)
         else:
-            messagebox.showerror("エラー", authorize_message)
+            self.auth_model.delete_credentials()
+
+        ViewController.switch_to_main_view(self.master)        
 
     def _validate_client_id(self, new_value):
         # client_idは10文字以内で、半角英数字のみ

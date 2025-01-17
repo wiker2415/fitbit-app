@@ -7,9 +7,6 @@ import cherrypy
 from oauthlib.oauth2.rfc6749.errors import InvalidClientError
 from ..models.credential import Credential
 
-# 認証可否のメッセージ変数をグローバルに定義
-authorize_message = ''
-
 class OAuth2Controller:
     SUCCESS_HTML = '''
         <h1>Fitbit APIへのアクセスが許可されました。</h1><br/>
@@ -21,47 +18,45 @@ class OAuth2Controller:
         <h3>ウィンドウを閉じてください。</h3>
     '''
 
-    def __init__(self, redirect_uri='http://127.0.0.1:8080/'):
+    def __init__(self, error_callback, success_callback, redirect_uri='http://127.0.0.1:8080/'):
         self.redirect_uri = redirect_uri
         self.fitbit = Fitbit(
-                Credential.client_id,
-                Credential.client_secret,
-                redirect_uri=self.redirect_uri,
-                timeout=10
-            )
+            Credential.client_id,
+            Credential.client_secret,
+            redirect_uri=self.redirect_uri,
+            timeout=10
+        )
+        self.error_callback = error_callback
+        self.success_callback = success_callback
     
     def browser_authorize(self):
         """認証URLをブラウザで開き、レスポンスを受け取るためにCherryPyサーバーを起動する"""
-        global authorize_message
+        def browser_task():
+            url, _ = self.fitbit.client.authorize_token_url()
+            # 認証URLが正しいか確認(Client情報が間違っていると500エラー)
+            try:
+                if self._check_url_connection(url) != 200:
+                    self.error_callback('エラーです。Client情報を確認してください。')
+            except Exception as e:
+                self.error_callback('サーバーへの接続でエラーが起こりました。')
 
-        url, _ = self.fitbit.client.authorize_token_url()
-        # 認証URLが正しいか確認(Client情報が間違っていると500エラー)
-        try:
-            if self._check_url_connection(url) != 200:
-                authorize_message = 'エラーです。Client情報を確認してください。'
-                return authorize_message
-        except Exception as e:
-            authorize_message = 'サーバーへの接続でエラーが起こりました。'
-            return authorize_message
+            threading.Timer(1, webbrowser.open, args=(url,)).start()
 
-        threading.Timer(1, webbrowser.open, args=(url,)).start()
+            # CherryPyサーバーを起動して認証を待つ
+            urlparams = urlparse(self.redirect_uri)
+            cherrypy.config.update({
+                'server.socket_host': urlparams.hostname,
+                'server.socket_port': urlparams.port,
+            })
 
-        # CherryPyサーバーを起動して認証を待つ
-        urlparams = urlparse(self.redirect_uri)
-        cherrypy.config.update({
-            'server.socket_host': urlparams.hostname,
-            'server.socket_port': urlparams.port,
-        })
+            cherrypy.quickstart(self, '/')
 
-        cherrypy.quickstart(self)
-
-        return authorize_message
+        thread = threading.Thread(target=browser_task)
+        thread.start()
 
     @cherrypy.expose
     def index(self, state, code=None, error=None):
         """Fitbitからの認証コードを受け取ってアクセストークンを取得"""
-        global authorize_message
-
         if code:
             try:
                 self.fitbit.client.fetch_access_token(code)
@@ -76,21 +71,24 @@ class OAuth2Controller:
                 Credential.expires_at = expires_at
 
                 self._shutdown_cherrypy()
-                authorize_message = '認証成功'
+                self.success_callback()
 
                 return self.SUCCESS_HTML
             except InvalidClientError as e:
-                authorize_message = 'エラーです。Client情報を確認してください。'
+                error_message = 'エラーです。Client情報を確認してください。'
+                self.error_callback(error_message)
                 self._shutdown_cherrypy()
-                return self.FAILURE_HTML.format(error_message=authorize_message)
+                return self.FAILURE_HTML.format(error_message=error_message)
             
             except Exception as e:
-                authorize_message = f'予期せぬエラー: {str(e)}'
+                error_message = f'予期せぬエラー: {str(e)}'
+                self.error_callback(error_message)
                 self._shutdown_cherrypy()
-                return self.FAILURE_HTML.format(error_message=authorize_message)
+                return self.FAILURE_HTML.format(error_message=error_message)
         else:
-            authorize_message = '予期せぬエラーです。'
-            return self.FAILURE_HTML.format(error_message=authorize_message)
+            error_message = '予期せぬエラーです。'
+            self.error_callback(error_message)
+            return self.FAILURE_HTML.format(error_message=error_message)
 
     def _shutdown_cherrypy(self):
         """cherrypyサーバーを終了"""
