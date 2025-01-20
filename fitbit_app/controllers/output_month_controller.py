@@ -15,6 +15,7 @@ from ..views.progress_view import ProgressView
 from ..models.output_month_service import OutputMonthService
 from ..models.credential import Credential
 
+# エラーログの設定
 os.makedirs('error_log', exist_ok=True)
 
 logging.basicConfig(
@@ -93,10 +94,10 @@ class OutputMonthController:
 
         # PDFで保存
         try:
-            os.makedirs(fr'./{self.save_folder_name}/monthly', exist_ok=True)
+            os.makedirs(fr'./graph/{self.save_folder_name}/monthly', exist_ok=True)
 
             # PDFに保存
-            pdf_path = os.path.abspath(fr'./{self.save_folder_name}/monthly/{self.year}-{self.month:02}.pdf')
+            pdf_path = os.path.abspath(fr'./graph/{self.save_folder_name}/monthly/{self.year}-{self.month:02}.pdf')
             plt.savefig(pdf_path)
 
             # PDFが存在するか確認

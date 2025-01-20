@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 from tkinter import messagebox
 import re
@@ -81,23 +82,32 @@ class AuthView(tk.Frame):
         Credential.client_id = self.client_id
         Credential.client_secret = self.client_secret
 
-        auth_controller = OAuth2Controller(self.error, self.success)
+        auth_controller = OAuth2Controller(self.error_callback, self.success_callback)
         auth_controller.browser_authorize()
 
-    def error(self, error_message: str):
+    def error_callback(self, error_message: str):
         """エラー時のコールバック"""
-        messagebox.showerror("エラー", f"エラー: {error_message}")
-        raise Exception(f"{error_message}")
+        def show_error_message():
+            messagebox.showerror("エラー", f"エラー: {error_message}")
+        
+        thread = threading.Thread(target=show_error_message)
+        thread.start()
     
-    def success(self):
+    def success_callback(self):
         """認証成功時のコールバック"""
-        # 保存オプションがオンならJSONファイルに保存する
-        if self.save_credentials_var.get():
-            self.auth_model.save_credentials(self.client_id, self.client_secret)
-        else:
-            self.auth_model.delete_credentials()
+        def success_task():
+            # 保存オプションがオンならJSONファイルに保存する
+            if self.save_credentials_var.get():
+                self.auth_model.save_credentials(self.client_id, self.client_secret)
+            else:
+                self.auth_model.delete_credentials()
 
-        ViewController.switch_to_main_view(self.master)        
+            # メインスレッドでUI操作を行う
+            self.master.after(0, ViewController.switch_to_main_view, self.master)
+
+        thread = threading.Thread(target=success_task)
+        thread.start()
+            
 
     def _validate_client_id(self, new_value):
         # client_idは10文字以内で、半角英数字のみ

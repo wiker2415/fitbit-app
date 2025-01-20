@@ -37,10 +37,15 @@ class OAuth2Controller:
             try:
                 if self._check_url_connection(url) != 200:
                     self.error_callback('エラーです。Client情報を確認してください。')
+                    return
             except Exception as e:
-                self.error_callback('サーバーへの接続でエラーが起こりました。')
+                self.error_callback(
+                    f'サーバーへの接続でエラーが起こりました。\n'
+                    f'詳細: {e}'
+                )
+                return
 
-            threading.Timer(1, webbrowser.open, args=(url,)).start()
+            webbrowser.open(url)
 
             # CherryPyサーバーを起動して認証を待つ
             urlparams = urlparse(self.redirect_uri)
@@ -70,24 +75,23 @@ class OAuth2Controller:
                 Credential.refresh_token = refresh_token
                 Credential.expires_at = expires_at
 
-                self._shutdown_cherrypy()
                 self.success_callback()
 
                 return self.SUCCESS_HTML
             except InvalidClientError as e:
                 error_message = 'エラーです。Client情報を確認してください。'
                 self.error_callback(error_message)
-                self._shutdown_cherrypy()
                 return self.FAILURE_HTML.format(error_message=error_message)
-            
             except Exception as e:
                 error_message = f'予期せぬエラー: {str(e)}'
                 self.error_callback(error_message)
-                self._shutdown_cherrypy()
                 return self.FAILURE_HTML.format(error_message=error_message)
+            finally:
+                self._shutdown_cherrypy()
         else:
             error_message = '予期せぬエラーです。'
             self.error_callback(error_message)
+            self._shutdown_cherrypy()
             return self.FAILURE_HTML.format(error_message=error_message)
 
     def _shutdown_cherrypy(self):
