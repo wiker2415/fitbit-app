@@ -1,5 +1,4 @@
 import os
-import subprocess
 import calendar
 import datetime as dt
 import jpholiday
@@ -106,7 +105,7 @@ class OutputMonthController:
                 raise Exception(f'PDFファイルが存在しません: {pdf_path}')
 
             # PDFを開く
-            subprocess.run(['start', pdf_path], check=True, shell=True)
+            os.startfile(pdf_path)
 
         except PermissionError:
             raise Exception('ファイルが開かれているため、保存できません。\nPDFを閉じて再試行してください。')
